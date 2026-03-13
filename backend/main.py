@@ -10,7 +10,6 @@ import operator
 
 import chromadb
 from chromadb.config import Settings
-import numpy as np
 import pdfplumber
 from openai import OpenAI
 from tavily import TavilyClient
@@ -61,11 +60,8 @@ except Exception as e:
 BASE_DIR      = Path(__file__).parent
 DATA_DIR      = BASE_DIR / "data"
 UPLOADS_DIR   = DATA_DIR / "uploads"
-VECTORDB_DIR  = DATA_DIR / "vectordb"
 SCHEMA_FILE   = DATA_DIR / "schema.json"
 EXTRACTED_FILE = DATA_DIR / "extracted_data.json"
-METADATA_FILE = DATA_DIR / "vectordb_metadata.json"
-INDEX_FILE    = VECTORDB_DIR / "index.faiss"
 CHROMA_DIR    = DATA_DIR / "chroma_db"
 
 # ─── ChromaDB Client ────────────────────────────────────────────────────────
@@ -128,7 +124,8 @@ llm = ChatOpenAI(
     temperature=0.2
 )
 
-for d in [DATA_DIR, UPLOADS_DIR, VECTORDB_DIR]:
+# Create data directories (uploads, chroma, etc.)
+for d in [DATA_DIR, UPLOADS_DIR, CHROMA_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ─── Default schema ───────────────────────────────────────────────────────────
@@ -169,61 +166,7 @@ if tavily_client:
 else:
     logger.warning("TAVILY_API_KEY not set — falling back to DuckDuckGo search.")
 
-# ─── FAISS helpers ────────────────────────────────────────────────────────────
-def load_metadata() -> list:
-    if METADATA_FILE.exists():
-        return json.loads(METADATA_FILE.read_text())
-    return []
-
-# ─── Migration Helper ────────────────────────────────────────────────────────
-def migrate_faiss_to_chroma():
-    """Migrate existing data from FAISS/JSON to ChromaDB if Chroma is empty."""
-    if resume_collection.count() > 0:
-        return
-
-    metadata = load_metadata()
-    if not metadata or not INDEX_FILE.exists():
-        return
-
-    logger.info(f"Migrating {len(metadata)} chunks from FAISS to ChromaDB...")
-    try:
-        import faiss
-        index = faiss.read_index(str(INDEX_FILE))
-        
-        # Pull all vectors from FAISS
-        # IndexFlatL2 doesn't support reconstruct_n easily without knowing count
-        # but we can search for everything or use the index directly if we had the raw embeddings.
-        # Since we don't have raw embeddings saved separately, and faiss-cpu might not support reconstruct,
-        # we'll re-encode the text chunks from metadata.
-        
-        texts = [m["text"] for m in metadata]
-        ids = [f"{m['resume_id']}_{m['chunk_index']}" for m in metadata]
-        metadatas = [
-            {"resume_id": m["resume_id"], "original_filename": m["original_filename"], "chunk_index": m["chunk_index"]}
-            for i, m in enumerate(metadata)
-        ]
-        
-        # Encoding in batches to avoid OOM
-        batch_size = 100
-        for i in range(0, len(texts), batch_size):
-            batch_texts = list(texts)[i:i+batch_size]
-            batch_ids = list(ids)[i:i+batch_size]
-            batch_metas = list(metadatas)[i:i+batch_size]
-            
-            embeddings = embedding_model.encode(batch_texts).tolist()
-            resume_collection.add(
-                documents=batch_texts,
-                embeddings=embeddings,
-                metadatas=batch_metas,
-                ids=batch_ids
-            )
-            
-        logger.info("ChromaDB migration complete.")
-    except Exception as e:
-        logger.error(f"Migration failed: {e}")
-
-# Run migration on startup
-migrate_faiss_to_chroma()
+# Note: FAISS to ChromaDB migration logic removed as migration is complete.
 
 def load_extracted() -> list:
     return json.loads(EXTRACTED_FILE.read_text())
@@ -433,7 +376,25 @@ def generator_node(state: AgentState):
         HumanMessage(content=f"Context:\n{context}\n\nQuestion: {query}")
     ]
     
-    response = llm.invoke(messages)
+    # Bind tools to the LLM so it knows it can use them
+    llm_with_tools = llm.bind_tools(AVAILABLE_TOOLS)
+    response = llm_with_tools.invoke(messages)
+    
+    # Handle optional tool calls (one-pass pass-through for presentation)
+    # Note: For full agentic loops, we'd use a tool-aware executor node.
+    # For this presentation, we'll demonstrate a single tool-call pass.
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        for tool_call in response.tool_calls:
+            tool_name = tool_call["name"]
+            tool_args = tool_call["args"]
+            logger.info(f"Agent using tool: {tool_name}")
+            tool_result = execute_tool(tool_name, tool_args)
+            
+            # Re-run LLM with tool output
+            messages.append(AIMessage(content="", tool_calls=[tool_call]))
+            messages.append(HumanMessage(content=f"Tool result: {tool_result}"))
+            response = llm.invoke(messages)
+
     return {"answer": response.content}
 
 # ─── Graph Construction ─────────────────────────────────────────────────────
