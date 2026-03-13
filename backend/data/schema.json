@@ -1,0 +1,14 @@
+{
+  "name": "Full name of the candidate",
+  "linkedin": "LinkedIn profile of the user",
+  "email": "Email address",
+  "phone": "Phone number",
+  "location": "City and/or Country",
+  "summary": "Professional summary or objective statement",
+  "education": "Degrees with institution name and graduation year (all degrees)",
+  "experience": "All work experiences with company name, job title, duration/dates, and key responsibilities",
+  "skills": "Technical skills, programming languages, tools and frameworks",
+  "certifications": "Professional certifications or licenses",
+  "languages": "Languages spoken and proficiency level",
+  "total_experience_years": "Total years of professional experience (number only)"
+}

@@ -1,0 +1,20 @@
+# Backend .dockerignore — files NOT copied into the Docker image
+# This keeps the image small and build fast
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+data/uploads/*
+data/vectordb/*
+poetry.lock
+*.log
+.git/
+.gitignore

@@ -1,0 +1,13 @@
+﻿resumeiq_backend  | INFO:main:Connected to MongoDB.
+resumeiq_backend  | INFO:main:Loading sentence transformer model...
+resumeiq_backend  | INFO:sentence_transformers.SentenceTransformer:Use pytorch device_name: cpu
+resumeiq_backend  | INFO:sentence_transformers.SentenceTransformer:Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+resumeiq_backend  | INFO:main:Tavily search client initialized.
+resumeiq_backend  | /app/main.py:237: UserWarning: Field name "schema" in "SchemaUpdate" shadows an attribute in parent "BaseModel"
+resumeiq_backend  |   class SchemaUpdate(BaseModel):
+resumeiq_backend  | INFO:     Started server process [1]
+resumeiq_backend  | INFO:     Waiting for application startup.
+resumeiq_backend  | INFO:     Application startup complete.
+resumeiq_backend  | INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+resumeiq_backend  | INFO:     172.18.0.3:60042 - "GET /api/extracted HTTP/1.0" 200 OK
+resumeiq_backend  | INFO:     172.18.0.3:36286 - "GET /api/extracted HTTP/1.0" 200 OK

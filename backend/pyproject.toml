@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "resume-rag-backend"
+version = "0.1.0"
+description = "Resume RAG Chatbot Backend"
+authors = ["You <you@example.com>"]
+readme = "README.md"
+package-mode = false  
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+python-multipart = "^0.0.9"
+pdfplumber = "^0.11.0"
+openai = "^1.35.0"
+faiss-cpu = "^1.8.0"
+sentence-transformers = "^3.0.0"
+numpy = "^1.26.0"
+python-dotenv = "^1.0.0"
+duckduckgo-search = "^6.0.0"
+tavily-python = "^0.5.0"
+motor = "^3.4.0"
+chromadb = "^0.5.0"
+mcp = "^1.0.0"
+langgraph = "^0.2.0"
+langchain-openai = "^0.2.0"
+langchain-core = "^0.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,65 @@
+# docker-compose.yml — Runs the entire ResumeIQ app with a single command
+#
+#   To START:  docker compose up --build
+#   To STOP:   docker compose down
+#   To REBUILD after code changes: docker compose up --build
+#
+# Ports:
+#   Frontend → http://localhost:3000
+#   Backend  → http://localhost:8000  (also accessible via /api on port 3000)
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend # folder that contains the backend Dockerfile
+      dockerfile: Dockerfile
+    container_name: resumeiq_backend
+    restart: unless-stopped
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+    volumes:
+      # Persist uploaded PDFs and FAISS index on your local machine
+      # Even if the container is removed, your data stays safe here
+      - ./backend/data:/app/data
+    ports:
+      - "8000:8000" # access backend directly at http://localhost:8000
+    networks:
+      - resumeiq_net
+
+  # ── Vite/React Frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend # folder that contains the frontend Dockerfile
+      dockerfile: Dockerfile
+    container_name: resumeiq_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80" # access the app at http://localhost:3000
+    depends_on:
+      - backend # wait for backend to start first
+    networks:
+      - resumeiq_net
+
+  mongo:
+    image: mongo:latest
+    container_name: resumeiq_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - resumeiq_net
+
+# ── Shared network so containers can talk to each other by name ──────────────
+networks:
+  resumeiq_net:
+    driver: bridge
+
+volumes:
+  mongo_data:

@@ -1,0 +1,7 @@
+# Frontend .dockerignore — files NOT copied into the Docker image
+node_modules/
+dist/
+.env
+*.log
+.git/
+.gitignore
