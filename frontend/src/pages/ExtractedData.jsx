@@ -274,7 +274,15 @@ function ChatPanel({ resumes, filterResume }) {
         setSessionId(data.session_id)
         localStorage.setItem('chat_session_id', data.session_id)
       }
-      setMessages(prev => [...prev, { role: 'assistant', text: data.response || 'No response.', isMarkdown: true }])
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: data.answer || data.response || 'No response.',
+          isMarkdown: true,
+          citations: Array.isArray(data.citations) ? data.citations : [],
+        },
+      ])
 
       // Update history list in background
       fetch(`${API}/chat/history`)
@@ -419,17 +427,21 @@ function ChatPanel({ resumes, filterResume }) {
             display: 'flex',
             justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
           }}>
-            <div style={{
-              maxWidth: '88%',
-              padding: '10px 13px',
-              borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-              background: m.role === 'user' ? 'var(--accent)' : 'var(--surface2)',
-              color: m.role === 'user' ? '#000' : 'var(--text)',
-              fontSize: 13, lineHeight: 1.55,
-              border: m.role === 'user' ? 'none' : '1px solid var(--border)',
-              whiteSpace: 'pre-wrap',
-            }}>
-              {m.isMarkdown ? <MarkdownText text={m.text} /> : m.text}
+            <div style={{ maxWidth: '88%' }}>
+              <div style={{
+                padding: '10px 13px',
+                borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                background: m.role === 'user' ? 'var(--accent)' : 'var(--surface2)',
+                color: m.role === 'user' ? '#000' : 'var(--text)',
+                fontSize: 13, lineHeight: 1.55,
+                border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {m.isMarkdown ? <MarkdownText text={m.text} /> : m.text}
+              </div>
+              {m.role === 'assistant' && Array.isArray(m.citations) && m.citations.length > 0 && (
+                <CitationBlock citations={m.citations} />
+              )}
             </div>
           </div>
         ))}
@@ -534,6 +546,47 @@ function MarkdownText({ text }) {
         )
       })}
     </span>
+  )
+}
+
+function CitationBlock({ citations }) {
+  return (
+    <div style={{
+      marginTop: 8,
+      padding: '8px 10px',
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      background: 'var(--surface)',
+      fontSize: 11,
+    }}>
+      <div style={{ color: 'var(--text3)', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        Citations
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {citations.map((c, idx) => (
+          <details key={`${c.chunk_id || c.url || idx}-${idx}`} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', background: 'var(--surface2)' }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--text2)' }}>
+              [{c.citation ?? idx + 1}] {c.source || c.url || 'Source'}
+              {c.chunk_id ? ` • chunk_id: ${c.chunk_id}` : ''}
+              {typeof c.chunk_index === 'number' ? ` • chunk_index: ${c.chunk_index}` : ''}
+            </summary>
+            <div style={{ marginTop: 6, color: 'var(--text)', whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>
+              {truncate((c.text || '').trim(), 420) || 'No snippet available.'}
+            </div>
+            {c.url && (
+              <a
+                href={c.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', marginTop: 6, color: 'var(--accent)', textDecoration: 'underline' }}
+              >
+                Open source
+              </a>
+            )}
+          </details>
+        ))}
+      </div>
+    </div>
   )
 }
 
